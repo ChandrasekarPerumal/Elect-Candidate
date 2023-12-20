@@ -1,5 +1,6 @@
 package com.candidate.vote.controller;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -74,13 +75,11 @@ public class CandidateController {
 	@PutMapping("/castvote")
 	public ResponseEntity<?> updateCandidate(@RequestParam("name") String candidateName) {
 
-		System.out.println(candidateName);
-		
+		// JSON response object declaration
+		JSONObject jsonResponseObject = new JSONObject();
 		try {
-			
+
 			if (candidateName.trim() != null && !candidateName.trim().isBlank()) {
-				// JSON response object declaration
-				JSONObject jsonResponseObject = new JSONObject();
 
 				// Check whether candidate name is already in the Map variable
 				if (candidateData_Map.containsKey(candidateName)) {
@@ -93,14 +92,20 @@ public class CandidateController {
 					jsonResponseObject.put("vote", candidateData_Map.get(candidateName));
 
 				} else {
-					return new ResponseEntity<>(" Such Candidate Exists", HttpStatus.NOT_FOUND);
+					jsonResponseObject.put("status", false);
+					jsonResponseObject.put("message", "No Such Candidate Exists");
+					return new ResponseEntity<>(jsonResponseObject, HttpStatus.NOT_FOUND);
 				}
 				return new ResponseEntity<>(jsonResponseObject, HttpStatus.OK);
 			} else {
-				return new ResponseEntity<>("Name Can't be NULL", HttpStatus.NOT_ACCEPTABLE);
+				jsonResponseObject.put("status", false);
+				jsonResponseObject.put("message", "Name Can't be NULL or Blank");
+				return new ResponseEntity<>(jsonResponseObject, HttpStatus.NOT_ACCEPTABLE);
 			}
 		} catch (Exception e) {
-			return new ResponseEntity<>(e.getMessage(), HttpStatus.EXPECTATION_FAILED);
+			jsonResponseObject.put("status", false);
+			jsonResponseObject.put("message", e.getMessage());
+			return new ResponseEntity<>(jsonResponseObject, HttpStatus.EXPECTATION_FAILED);
 		}
 	}
 
@@ -125,16 +130,26 @@ public class CandidateController {
 	public ResponseEntity<?> getAllCandidate() {
 
 		// JSON response object declaration
-		JSONArray jsonResponseArray = new JSONArray();
-		
-		
-		// Check whether candidate name is already in the Map variable
-		if (!candidateData_Map.isEmpty()) {
-			// Update the vote
+		JSONObject jsonResponseObject = new JSONObject();
 
-			return new ResponseEntity<>(candidateData_Map, HttpStatus.OK);
-		} else {
-			return new ResponseEntity<>("Not available", HttpStatus.NOT_FOUND);
+		try {
+			// Check whether any data is available or not
+			if (!candidateData_Map.isEmpty()) {
+				// Valid data is available
+				jsonResponseObject.put("status", true);
+				jsonResponseObject.put("message", candidateData_Map);
+				return new ResponseEntity<>(jsonResponseObject, HttpStatus.OK);
+			} else {
+				// No candidate is found
+				jsonResponseObject.put("status", false);
+				jsonResponseObject.put("message", "No data is available");
+				return new ResponseEntity<>(jsonResponseObject, HttpStatus.NOT_FOUND);
+			}
+		} catch (Exception e) {
+			// Exception
+			jsonResponseObject.put("status", false);
+			jsonResponseObject.put("message", e.getMessage());
+			return new ResponseEntity<>(jsonResponseObject, HttpStatus.EXPECTATION_FAILED);
 		}
 
 	}
@@ -142,18 +157,42 @@ public class CandidateController {
 	@GetMapping("/getwinner")
 	public ResponseEntity<?> getWinnerCandidate() {
 
-		// ---- JSON OBject to return the data
+		// JSON response object declaration
+		JSONObject jsonResponseObject = new JSONObject();
 
-		// Check whether candidate name is already in the Map variable
-		if (candidateData_Map.isEmpty()) {
-			// Update the vote
+		try {
+			// Check whether candidate name is already in the Map variable
+			if (!candidateData_Map.isEmpty()) {
 
-		} else {
-			return new ResponseEntity<>("No Such Candidate Exists ", HttpStatus.NOT_ACCEPTABLE);
+				// Get the candidate name who has highest vote
+				String key_candidateName = Collections.max(candidateData_Map.entrySet(), Map.Entry.comparingByValue())
+						.getKey();
+
+				long moreThanOneCandidate_maxCount = candidateData_Map.entrySet().stream()
+						.filter(entry -> entry.getValue().equals(candidateData_Map.get(key_candidateName))).count();
+
+				if (moreThanOneCandidate_maxCount > 1) {
+					jsonResponseObject.put("status", false);
+					jsonResponseObject.put("message", "More candidate has same vote :" + moreThanOneCandidate_maxCount);
+					return new ResponseEntity<>(jsonResponseObject, HttpStatus.OK);
+
+				}
+
+				jsonResponseObject.put("status", true);
+				jsonResponseObject.put("message", key_candidateName);
+				return new ResponseEntity<>(jsonResponseObject, HttpStatus.OK);
+
+			} else {
+				jsonResponseObject.put("status", false);
+				jsonResponseObject.put("message", "No data available");
+				return new ResponseEntity<>(jsonResponseObject, HttpStatus.NOT_FOUND);
+			}
+		} catch (Exception e) {
+			// Exception
+			jsonResponseObject.put("status", false);
+			jsonResponseObject.put("message", e.getMessage());
+			return new ResponseEntity<>(jsonResponseObject, HttpStatus.EXPECTATION_FAILED);
 		}
-
-		return new ResponseEntity<>("", HttpStatus.ACCEPTED);
-
 	}
 
 }
